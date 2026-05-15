@@ -33,7 +33,7 @@ pipeline {
             }
             steps {
                 dir('spring-petclinic-customers-service') {
-                    sh './mvnw test'
+                    sh '../mvnw test'
                 }
             }
             post {
@@ -50,7 +50,7 @@ pipeline {
             }
             steps {
                 dir('spring-petclinic-customers-service') {
-                    sh './mvnw clean package -DskipTests'
+                    sh '../mvnw clean package -DskipTests'
                 }
             }
         }
@@ -61,7 +61,7 @@ pipeline {
             }
             steps {
                 dir('spring-petclinic-vets-service') {
-                    sh './mvnw test'
+                    sh '../mvnw test'
                 }
             }
             post {
@@ -78,7 +78,7 @@ pipeline {
             }
             steps {
                 dir('spring-petclinic-vets-service') {
-                    sh './mvnw clean package -DskipTests'
+                    sh '../mvnw clean package -DskipTests'
                 }
             }
         }
@@ -89,7 +89,7 @@ pipeline {
             }
             steps {
                 dir('spring-petclinic-visits-service') {
-                    sh './mvnw test'
+                    sh '../mvnw test'
                 }
             }
             post {
@@ -106,7 +106,7 @@ pipeline {
             }
             steps {
                 dir('spring-petclinic-visits-service') {
-                    sh './mvnw clean package -DskipTests'
+                    sh '../mvnw clean package -DskipTests'
                 }
             }
         }
