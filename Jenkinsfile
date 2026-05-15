@@ -33,7 +33,7 @@ pipeline {
             }
             steps {
                 dir('spring-petclinic-customers-service') {
-                    sh '../mvnw test'
+                    sh '../mvnw clean verify'
                 }
             }
             post {
@@ -61,7 +61,7 @@ pipeline {
             }
             steps {
                 dir('spring-petclinic-vets-service') {
-                    sh '../mvnw test'
+                    sh '../mvnw clean verify'
                 }
             }
             post {
@@ -89,7 +89,7 @@ pipeline {
             }
             steps {
                 dir('spring-petclinic-visits-service') {
-                    sh '../mvnw test'
+                    sh '../mvnw clean verify'
                 }
             }
             post {
