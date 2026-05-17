@@ -33,13 +33,13 @@ pipeline {
             }
             steps {
                 dir('spring-petclinic-customers-service') {
-                    sh '../mvnw test'
+                    sh '../mvnw clean verify'
                 }
             }
             post {
                 always {
                     junit 'spring-petclinic-customers-service/target/surefire-reports/*.xml'
-                    jacoco execPattern: 'spring-petclinic-customers-service/target/jacoco.exec'
+                    archiveArtifacts artifacts: 'spring-petclinic-customers-service/target/site/jacoco/**', allowEmptyArchive: true
                 }
             }
         }
@@ -61,13 +61,13 @@ pipeline {
             }
             steps {
                 dir('spring-petclinic-vets-service') {
-                    sh '../mvnw test'
+                    sh '../mvnw clean verify'
                 }
             }
             post {
                 always {
                     junit 'spring-petclinic-vets-service/target/surefire-reports/*.xml'
-                    jacoco execPattern: 'spring-petclinic-vets-service/target/jacoco.exec'
+                    archiveArtifacts artifacts: 'spring-petclinic-vets-service/target/site/jacoco/**', allowEmptyArchive: true
                 }
             }
         }
@@ -89,13 +89,13 @@ pipeline {
             }
             steps {
                 dir('spring-petclinic-visits-service') {
-                    sh '../mvnw test'
+                    sh '../mvnw clean verify'
                 }
             }
             post {
                 always {
                     junit 'spring-petclinic-visits-service/target/surefire-reports/*.xml'
-                    jacoco execPattern: 'spring-petclinic-visits-service/target/jacoco.exec'
+                    archiveArtifacts artifacts: 'spring-petclinic-visits-service/target/site/jacoco/**', allowEmptyArchive: true
                 }
             }
         }
