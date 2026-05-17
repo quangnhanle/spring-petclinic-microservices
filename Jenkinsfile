@@ -39,7 +39,7 @@ pipeline {
             post {
                 always {
                     junit 'spring-petclinic-customers-service/target/surefire-reports/*.xml'
-                    jacoco execPattern: 'spring-petclinic-customers-service/target/jacoco.exec'
+                    archiveArtifacts artifacts: 'spring-petclinic-customers-service/target/site/jacoco/**', allowEmptyArchive: true
                 }
             }
         }
@@ -67,7 +67,7 @@ pipeline {
             post {
                 always {
                     junit 'spring-petclinic-vets-service/target/surefire-reports/*.xml'
-                    jacoco execPattern: 'spring-petclinic-vets-service/target/jacoco.exec'
+                    archiveArtifacts artifacts: 'spring-petclinic-vets-service/target/site/jacoco/**', allowEmptyArchive: true
                 }
             }
         }
@@ -95,7 +95,7 @@ pipeline {
             post {
                 always {
                     junit 'spring-petclinic-visits-service/target/surefire-reports/*.xml'
-                    jacoco execPattern: 'spring-petclinic-visits-service/target/jacoco.exec'
+                    archiveArtifacts artifacts: 'spring-petclinic-visits-service/target/site/jacoco/**', allowEmptyArchive: true
                 }
             }
         }
