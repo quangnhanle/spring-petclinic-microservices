@@ -92,13 +92,9 @@ pipeline {
                 expression { env.BUILD_CUSTOMERS == 'true' }
             }
             steps {
-                sh '''
-                    docker build \
-                      -t $DOCKERHUB_USERNAME/spring-petclinic-customers-service:$COMMIT_ID \
-                      ./spring-petclinic-customers-service
-
-                    docker push $DOCKERHUB_USERNAME/spring-petclinic-customers-service:$COMMIT_ID
-                '''
+                script {
+                    buildAndPushImage('./spring-petclinic-customers-service', 'spring-petclinic-customers-service', '8081', env.COMMIT_ID)
+                }
             }
         }
 
@@ -107,13 +103,9 @@ pipeline {
                 expression { env.BUILD_VETS == 'true' }
             }
             steps {
-                sh '''
-                    docker build \
-                      -t $DOCKERHUB_USERNAME/spring-petclinic-vets-service:$COMMIT_ID \
-                      ./spring-petclinic-vets-service
-
-                    docker push $DOCKERHUB_USERNAME/spring-petclinic-vets-service:$COMMIT_ID
-                '''
+                script {
+                    buildAndPushImage('./spring-petclinic-vets-service', 'spring-petclinic-vets-service', '8081', env.COMMIT_ID)
+                }
             }
         }
 
@@ -122,13 +114,9 @@ pipeline {
                 expression { env.BUILD_VISITS == 'true' }
             }
             steps {
-                sh '''
-                    docker build \
-                      -t $DOCKERHUB_USERNAME/spring-petclinic-visits-service:$COMMIT_ID \
-                      ./spring-petclinic-visits-service
-
-                    docker push $DOCKERHUB_USERNAME/spring-petclinic-visits-service:$COMMIT_ID
-                '''
+                script {
+                    buildAndPushImage('./spring-petclinic-visits-service', 'spring-petclinic-visits-service', '8081', env.COMMIT_ID)
+                }
             }
         }
 
@@ -137,13 +125,9 @@ pipeline {
                 expression { env.BUILD_API_GATEWAY == 'true' }
             }
             steps {
-                sh '''
-                    docker build \
-                      -t $DOCKERHUB_USERNAME/spring-petclinic-api-gateway:$COMMIT_ID \
-                      ./spring-petclinic-api-gateway
-
-                    docker push $DOCKERHUB_USERNAME/spring-petclinic-api-gateway:$COMMIT_ID
-                '''
+                script {
+                    buildAndPushImage('./spring-petclinic-api-gateway', 'spring-petclinic-api-gateway', '8081', env.COMMIT_ID)
+                }
             }
         }
 
@@ -152,13 +136,9 @@ pipeline {
                 expression { env.BUILD_DISCOVERY == 'true' }
             }
             steps {
-                sh '''
-                    docker build \
-                      -t $DOCKERHUB_USERNAME/spring-petclinic-discovery-server:$COMMIT_ID \
-                      ./spring-petclinic-discovery-server
-
-                    docker push $DOCKERHUB_USERNAME/spring-petclinic-discovery-server:$COMMIT_ID
-                '''
+                script {
+                    buildAndPushImage('./spring-petclinic-discovery-server', 'spring-petclinic-discovery-server', '8761', env.COMMIT_ID)
+                }
             }
         }
 
@@ -167,13 +147,9 @@ pipeline {
                 expression { env.BUILD_ADMIN == 'true' }
             }
             steps {
-                sh '''
-                    docker build \
-                      -t $DOCKERHUB_USERNAME/spring-petclinic-admin-server:$COMMIT_ID \
-                      ./spring-petclinic-admin-server
-
-                    docker push $DOCKERHUB_USERNAME/spring-petclinic-admin-server:$COMMIT_ID
-                '''
+                script {
+                    buildAndPushImage('./spring-petclinic-admin-server', 'spring-petclinic-admin-server', '9090', env.COMMIT_ID)
+                }
             }
         }
     }
@@ -188,4 +164,26 @@ pipeline {
             echo "CI failed. Please check Jenkins logs."
         }
     }
+}
+
+def buildAndPushImage(String serviceDir, String imageName, String exposedPort, String commitId) {
+    def artifactName = sh(
+        script: "find ${serviceDir}/target -maxdepth 1 -name '*.jar' ! -name '*.original' -exec basename {} .jar \\; | head -n 1",
+        returnStdout: true
+    ).trim()
+
+    if (!artifactName) {
+        error "No packaged jar found in ${serviceDir}/target"
+    }
+
+    sh """
+        docker build \
+          -f ./docker/Dockerfile \
+          --build-arg ARTIFACT_NAME=${artifactName} \
+          --build-arg EXPOSED_PORT=${exposedPort} \
+          -t ${env.DOCKERHUB_USERNAME}/${imageName}:${commitId} \
+          ${serviceDir}/target
+
+        docker push ${env.DOCKERHUB_USERNAME}/${imageName}:${commitId}
+    """
 }
