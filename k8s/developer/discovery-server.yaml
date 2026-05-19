@@ -18,6 +18,9 @@ spec:
           image: nhanleeq/spring-petclinic-discovery-server:main
           ports:
             - containerPort: 8761
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "docker"
 ---
 apiVersion: v1
 kind: Service
