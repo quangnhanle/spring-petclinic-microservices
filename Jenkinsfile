@@ -18,7 +18,8 @@ pipeline {
     stages {
         stage('Checkout Source Code') {
             steps {
-                checkout scm
+                git branch: "${params.BRANCH_NAME}",
+                    url: "${env.GIT_REPO}"
             }
         }
 
@@ -44,29 +45,26 @@ pipeline {
                         returnStdout: true
                     ).trim()
 
-                    echo "Changed files:"
-                    echo changedFiles
+                    def buildAll = !changedFiles
 
-                    env.BUILD_CUSTOMERS = changedFiles.contains("spring-petclinic-customers-service") ? "true" : "false"
-                    env.BUILD_VETS = changedFiles.contains("spring-petclinic-vets-service") ? "true" : "false"
-                    env.BUILD_VISITS = changedFiles.contains("spring-petclinic-visits-service") ? "true" : "false"
-                    env.BUILD_API_GATEWAY = changedFiles.contains("spring-petclinic-api-gateway") ? "true" : "false"
-                    env.BUILD_DISCOVERY = changedFiles.contains("spring-petclinic-discovery-server") ? "true" : "false"
-                    env.BUILD_ADMIN = changedFiles.contains("spring-petclinic-admin-server") ? "true" : "false"
+                    env.BUILD_CUSTOMERS = buildAll || changedFiles.contains("spring-petclinic-customers-service") ? "true" : "false"
+                    env.BUILD_VETS = buildAll || changedFiles.contains("spring-petclinic-vets-service") ? "true" : "false"
+                    env.BUILD_VISITS = buildAll || changedFiles.contains("spring-petclinic-visits-service") ? "true" : "false"
+                    env.BUILD_API_GATEWAY = buildAll || changedFiles.contains("spring-petclinic-api-gateway") ? "true" : "false"
+                    env.BUILD_CONFIG_SERVER = buildAll || changedFiles.contains("spring-petclinic-config-server") ? "true" : "false"
+                    env.BUILD_DISCOVERY = buildAll || changedFiles.contains("spring-petclinic-discovery-server") ? "true" : "false"
+                    env.BUILD_GENAI = buildAll || changedFiles.contains("spring-petclinic-genai-service") ? "true" : "false"
+                    env.BUILD_ADMIN = buildAll || changedFiles.contains("spring-petclinic-admin-server") ? "true" : "false"
 
                     echo "BUILD_CUSTOMERS = ${env.BUILD_CUSTOMERS}"
                     echo "BUILD_VETS = ${env.BUILD_VETS}"
                     echo "BUILD_VISITS = ${env.BUILD_VISITS}"
                     echo "BUILD_API_GATEWAY = ${env.BUILD_API_GATEWAY}"
+                    echo "BUILD_CONFIG_SERVER = ${env.BUILD_CONFIG_SERVER}"
                     echo "BUILD_DISCOVERY = ${env.BUILD_DISCOVERY}"
+                    echo "BUILD_GENAI = ${env.BUILD_GENAI}"
                     echo "BUILD_ADMIN = ${env.BUILD_ADMIN}"
                 }
-            }
-        }
-
-        stage('Maven Build') {
-            steps {
-                sh './mvnw clean package -DskipTests'
             }
         }
 
@@ -86,46 +84,19 @@ pipeline {
             }
         }
 
-        stage('Build and Push Customers Service') {
+        stage('Test Discovery Server') {
             when {
-                expression { env.BUILD_CUSTOMERS == 'true' }
+                expression { env.BUILD_DISCOVERY == 'true' }
             }
             steps {
-                script {
-                    buildAndPushImage('./spring-petclinic-customers-service', 'spring-petclinic-customers-service', '8081', env.COMMIT_ID)
+                dir('spring-petclinic-discovery-server') {
+                    sh '../mvnw clean verify'
                 }
             }
-        }
-
-        stage('Build and Push Vets Service') {
-            when {
-                expression { env.BUILD_VETS == 'true' }
-            }
-            steps {
-                script {
-                    buildAndPushImage('./spring-petclinic-vets-service', 'spring-petclinic-vets-service', '8081', env.COMMIT_ID)
-                }
-            }
-        }
-
-        stage('Build and Push Visits Service') {
-            when {
-                expression { env.BUILD_VISITS == 'true' }
-            }
-            steps {
-                script {
-                    buildAndPushImage('./spring-petclinic-visits-service', 'spring-petclinic-visits-service', '8081', env.COMMIT_ID)
-                }
-            }
-        }
-
-        stage('Build and Push API Gateway') {
-            when {
-                expression { env.BUILD_API_GATEWAY == 'true' }
-            }
-            steps {
-                script {
-                    buildAndPushImage('./spring-petclinic-api-gateway', 'spring-petclinic-api-gateway', '8081', env.COMMIT_ID)
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'spring-petclinic-discovery-server/target/surefire-reports/*.xml'
+                    archiveArtifacts artifacts: 'spring-petclinic-discovery-server/target/site/jacoco/**', allowEmptyArchive: true
                 }
             }
         }
@@ -137,6 +108,191 @@ pipeline {
             steps {
                 script {
                     buildAndPushImage('./spring-petclinic-discovery-server', 'spring-petclinic-discovery-server', '8761', env.COMMIT_ID)
+                }
+            }
+        }
+
+        stage('Test Config Server') {
+            when {
+                expression { env.BUILD_CONFIG_SERVER == 'true' }
+            }
+            steps {
+                dir('spring-petclinic-config-server') {
+                    sh '../mvnw clean verify'
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'spring-petclinic-config-server/target/surefire-reports/*.xml'
+                    archiveArtifacts artifacts: 'spring-petclinic-config-server/target/site/jacoco/**', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Build and Push Config Server') {
+            when {
+                expression { env.BUILD_CONFIG_SERVER == 'true' }
+            }
+            steps {
+                script {
+                    buildAndPushImage('./spring-petclinic-config-server', 'spring-petclinic-config-server', '8888', env.COMMIT_ID)
+                }
+            }
+        }
+
+        stage('Test Customers Service') {
+            when {
+                expression { env.BUILD_CUSTOMERS == 'true' }
+            }
+            steps {
+                dir('spring-petclinic-customers-service') {
+                    sh '../mvnw clean verify'
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'spring-petclinic-customers-service/target/surefire-reports/*.xml'
+                    archiveArtifacts artifacts: 'spring-petclinic-customers-service/target/site/jacoco/**', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Build and Push Customers Service') {
+            when {
+                expression { env.BUILD_CUSTOMERS == 'true' }
+            }
+            steps {
+                script {
+                    buildAndPushImage('./spring-petclinic-customers-service', 'spring-petclinic-customers-service', '8081', env.COMMIT_ID)
+                }
+            }
+        }
+
+        stage('Test Vets Service') {
+            when {
+                expression { env.BUILD_VETS == 'true' }
+            }
+            steps {
+                dir('spring-petclinic-vets-service') {
+                    sh '../mvnw clean verify'
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'spring-petclinic-vets-service/target/surefire-reports/*.xml'
+                    archiveArtifacts artifacts: 'spring-petclinic-vets-service/target/site/jacoco/**', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Build and Push Vets Service') {
+            when {
+                expression { env.BUILD_VETS == 'true' }
+            }
+            steps {
+                script {
+                    buildAndPushImage('./spring-petclinic-vets-service', 'spring-petclinic-vets-service', '8083', env.COMMIT_ID)
+                }
+            }
+        }
+
+        stage('Test Visits Service') {
+            when {
+                expression { env.BUILD_VISITS == 'true' }
+            }
+            steps {
+                dir('spring-petclinic-visits-service') {
+                    sh '../mvnw clean verify'
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'spring-petclinic-visits-service/target/surefire-reports/*.xml'
+                    archiveArtifacts artifacts: 'spring-petclinic-visits-service/target/site/jacoco/**', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Build and Push Visits Service') {
+            when {
+                expression { env.BUILD_VISITS == 'true' }
+            }
+            steps {
+                script {
+                    buildAndPushImage('./spring-petclinic-visits-service', 'spring-petclinic-visits-service', '8082', env.COMMIT_ID)
+                }
+            }
+        }
+
+        stage('Test GenAI Service') {
+            when {
+                expression { env.BUILD_GENAI == 'true' }
+            }
+            steps {
+                dir('spring-petclinic-genai-service') {
+                    sh '../mvnw clean verify'
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'spring-petclinic-genai-service/target/surefire-reports/*.xml'
+                    archiveArtifacts artifacts: 'spring-petclinic-genai-service/target/site/jacoco/**', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Build and Push GenAI Service') {
+            when {
+                expression { env.BUILD_GENAI == 'true' }
+            }
+            steps {
+                script {
+                    buildAndPushImage('./spring-petclinic-genai-service', 'spring-petclinic-genai-service', '8084', env.COMMIT_ID)
+                }
+            }
+        }
+
+        stage('Test API Gateway') {
+            when {
+                expression { env.BUILD_API_GATEWAY == 'true' }
+            }
+            steps {
+                dir('spring-petclinic-api-gateway') {
+                    sh '../mvnw clean verify'
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'spring-petclinic-api-gateway/target/surefire-reports/*.xml'
+                    archiveArtifacts artifacts: 'spring-petclinic-api-gateway/target/site/jacoco/**', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Build and Push API Gateway') {
+            when {
+                expression { env.BUILD_API_GATEWAY == 'true' }
+            }
+            steps {
+                script {
+                    buildAndPushImage('./spring-petclinic-api-gateway', 'spring-petclinic-api-gateway', '8080', env.COMMIT_ID)
+                }
+            }        
+        }
+
+        stage('Test Admin Server') {
+            when {
+                expression { env.BUILD_ADMIN == 'true' }
+            }
+            steps {
+                dir('spring-petclinic-admin-server') {
+                    sh '../mvnw clean verify'
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'spring-petclinic-admin-server/target/surefire-reports/*.xml'
+                    archiveArtifacts artifacts: 'spring-petclinic-admin-server/target/site/jacoco/**', allowEmptyArchive: true
                 }
             }
         }
